@@ -233,9 +233,9 @@ const questions=[{"id":1,"group":"yo","verb":"hablar","answer":"hablé","sentenc
 const irregularQuestions=questions.filter(q=>q.hard);
 const STORAGE={
   best:"flappyVerbPreteriteBest_v1",
-  unlocks:"flappyVerbPreteriteUnlocks_v1",
-  equipped:"flappyVerbPreteriteEquipped_v1",
-  bundle:"flappyVerbPreteriteSave_v1"
+  unlocks:"flappyVerbPreteriteUnlocks_v2",
+  equipped:"flappyVerbPreteriteEquipped_v2",
+  bundle:"flappyVerbPreteriteSave_v2"
 };
 function storageAvailable(){
   try{
@@ -258,36 +258,51 @@ function safeJSON(raw,fallback){
   try{return raw?JSON.parse(raw):fallback}catch(e){return fallback}
 }
 const savedBundle=safeJSON(safeGet(STORAGE.bundle),{});
+
+// PRETÉRITO EXCLUSIVE COSMETICS: "Cronoaventura"
+// A coherent adventure-through-time progression unique to this tense version.
 const cosmeticDefs=[
-  {id:"azul",score:10,category:"color",name:"Azul",preview:"●"},
-  {id:"verde",score:10,category:"color",name:"Verde",preview:"●"},
-  {id:"turquesa",score:10,category:"color",name:"Turquesa",preview:"●"},
-  {id:"celeste",score:10,category:"color",name:"Celeste",preview:"●"},
-  {id:"rojo",score:20,category:"color",name:"Rojo",preview:"●"},
-  {id:"naranja",score:20,category:"color",name:"Naranja",preview:"●"},
-  {id:"rosa",score:20,category:"color",name:"Rosa",preview:"●"},
-  {id:"coral",score:20,category:"color",name:"Coral",preview:"●"},
-  {id:"gorra",score:30,category:"sombrero",name:"Gorra",preview:"▰"},
-  {id:"gafas",score:40,category:"gafas",name:"Gafas de sol",preview:"▣"},
-  {id:"morado",score:50,category:"color",name:"Morado",preview:"●"},
-  {id:"negro",score:50,category:"color",name:"Negro",preview:"●"},
-  {id:"blanco",score:50,category:"color",name:"Blanco",preview:"●"},
-  {id:"dorado",score:50,category:"color",name:"Dorado",preview:"●"},
-  {id:"corona",score:60,category:"sombrero",name:"Corona",preview:"♛"},
-  {id:"alas",score:70,category:"alas",name:"Alas doradas",preview:"≋"},
-  {id:"estela",score:80,category:"estela",name:"Estela brillante",preview:"✦"},
-  {id:"estrella",score:90,category:"accesorio",name:"Estrella",preview:"★"},
-  {id:"aura",score:100,category:"efecto",name:"Aura arcoíris",preview:"◎"},
-  {id:"metalico",score:110,category:"color",name:"Plata metálica",preview:"●"},
-  {id:"visera",score:120,category:"gafas",name:"Visera neón",preview:"▰"},
-  {id:"helice",score:130,category:"sombrero",name:"Gorra con hélice",preview:"✣"},
-  {id:"alas_fuego",score:140,category:"alas",name:"Alas de fuego",preview:"≋"},
-  {id:"estela_estelar",score:150,category:"estela",name:"Estela estelar",preview:"✦"},
-  {id:"rayo",score:160,category:"accesorio",name:"Rayo",preview:"ϟ"},
-  {id:"holografico",score:170,category:"efecto",name:"Brillo holográfico",preview:"◎"},
-  {id:"obsidiana",score:180,category:"color",name:"Obsidiana",preview:"●"},
-  {id:"halo",score:190,category:"accesorio",name:"Halo",preview:"○"},
-  {id:"legendario",score:200,category:"efecto",name:"Efecto legendario",preview:"★"}
+  // 10: starter palette gives immediate personalization without feeling premium.
+  {id:"oceano",score:10,category:"color",name:"Océano",preview:"●"},
+  {id:"mandarina",score:10,category:"color",name:"Mandarina",preview:"●"},
+  {id:"menta",score:10,category:"color",name:"Menta",preview:"●"},
+  {id:"lavanda",score:10,category:"color",name:"Lavanda",preview:"●"},
+
+  // 20-40: recognizable adventurer silhouette and first motion reward.
+  {id:"panuelo_aventurero",score:20,category:"sombrero",name:"Pañuelo aventurero",preview:"◢"},
+  {id:"gafas_aviador",score:30,category:"gafas",name:"Gafas de aviador",preview:"◉"},
+  {id:"polvo_ruta",score:40,category:"estela",name:"Polvo de ruta",preview:"✦"},
+
+  // 50: richer earth-and-map palette.
+  {id:"cobre",score:50,category:"color",name:"Cobre",preview:"●"},
+  {id:"petroleo",score:50,category:"color",name:"Azul petróleo",preview:"●"},
+  {id:"borgona",score:50,category:"color",name:"Borgoña",preview:"●"},
+  {id:"crema",score:50,category:"color",name:"Crema",preview:"●"},
+
+  // 60-90: the bird becomes a full explorer build.
+  {id:"alas_pergamino",score:60,category:"alas",name:"Alas de pergamino",preview:"≋"},
+  {id:"brujula",score:70,category:"accesorio",name:"Brújula",preview:"✥"},
+  {id:"sombrero_explorador",score:80,category:"sombrero",name:"Sombrero explorador",preview:"▰"},
+  {id:"destellos_viaje",score:90,category:"efecto",name:"Destellos de viaje",preview:"✧"},
+
+  // 100: clear midpoint status reward.
+  {id:"cobre_pulido",score:100,category:"color",name:"Cobre pulido",preview:"●"},
+
+  // 110-150: advanced expedition / time-machine gear.
+  {id:"goggles_expedicion",score:110,category:"gafas",name:"Goggles de expedición",preview:"▣"},
+  {id:"estela_cronologica",score:120,category:"estela",name:"Estela cronológica",preview:"◌"},
+  {id:"alas_mecanicas",score:130,category:"alas",name:"Alas mecánicas",preview:"≋"},
+  {id:"reloj_bolsillo",score:140,category:"accesorio",name:"Reloj de bolsillo",preview:"◷"},
+  {id:"cometa_temporal",score:150,category:"estela",name:"Cometa temporal",preview:"☄"},
+
+  // 160-190: unmistakably elite cosmetics.
+  {id:"casco_cronauta",score:160,category:"sombrero",name:"Casco crononauta",preview:"◒"},
+  {id:"portal_temporal",score:170,category:"efecto",name:"Portal temporal",preview:"◎"},
+  {id:"medianoche_estelar",score:180,category:"color",name:"Medianoche estelar",preview:"●"},
+  {id:"anillos_tiempo",score:190,category:"accesorio",name:"Anillos del tiempo",preview:"⊚"},
+
+  // 200: layered capstone that still respects all equipped cosmetics.
+  {id:"crononauta_legendario",score:200,category:"efecto",name:"Crononauta legendario",preview:"★"}
 ];
 const categoryLabels={
   color:"Color",sombrero:"Sombrero",gafas:"Gafas",alas:"Alas",
@@ -296,10 +311,18 @@ const categoryLabels={
 const legacyUnlocks=safeJSON(safeGet(STORAGE.unlocks),[]);
 const bundleUnlocks=Array.isArray(savedBundle.unlocks)?savedBundle.unlocks:[];
 let unlocked=new Set([...legacyUnlocks,...bundleUnlocks]);
-let equipped=Object.assign({
+const defaultEquipped={
   color:"amarillo",sombrero:"ninguno",gafas:"ninguno",alas:"normales",
   estela:"ninguna",accesorio:"ninguno",efecto:"ninguno"
-},safeJSON(safeGet(STORAGE.equipped),{}),savedBundle.equipped||{});
+};
+let equipped=Object.assign({},defaultEquipped,safeJSON(safeGet(STORAGE.equipped),{}),savedBundle.equipped||{});
+
+// If a student tested an earlier preterite build, old cosmetic IDs should not
+// create invisible gear. Preserve the high score, but fall back cleanly per slot.
+for(const cat of Object.keys(defaultEquipped)){
+  const allowed=new Set([defaultEquipped[cat],...cosmeticDefs.filter(x=>x.category===cat).map(x=>x.id)]);
+  if(!allowed.has(equipped[cat]))equipped[cat]=defaultEquipped[cat];
+}
 
 
 // ------------------------------------------------------------
@@ -551,13 +574,13 @@ function sfxUnlock(){
 }
 function rewardLabelForMilestone(points,items){
   const labels={
-    10:"Nueva paleta de colores",20:"Nueva paleta de colores",30:"Gorra",
-    40:"Gafas de sol",50:"Nueva paleta de colores",60:"Corona",
-    70:"Alas doradas",80:"Estela brillante",90:"Estrella",100:"Aura arcoíris",
-    110:"Color premium",120:"Gafas premium",130:"Sombrero premium",
-    140:"Alas premium",150:"Estela premium",160:"Accesorio premium",
-    170:"Efecto premium",180:"Color premium",190:"Accesorio premium",
-    200:"¡EFECTO LEGENDARIO!"
+    10:"Paleta de ruta",20:"Pañuelo aventurero",30:"Gafas de aviador",
+    40:"Polvo de ruta",50:"Paleta del atlas",60:"Alas de pergamino",
+    70:"Brújula",80:"Sombrero explorador",90:"Destellos de viaje",
+    100:"¡COBRE PULIDO!",110:"Goggles de expedición",120:"Estela cronológica",
+    130:"Alas mecánicas",140:"Reloj de bolsillo",150:"Cometa temporal",
+    160:"Casco crononauta",170:"Portal temporal",180:"Medianoche estelar",
+    190:"Anillos del tiempo",200:"¡CRONAUTA LEGENDARIO!"
   };
   return labels[points] || (items.length===1?items[0].name:`${items.length} nuevos objetos`);
 }
@@ -600,9 +623,10 @@ function isUnlocked(id){
 }
 function cosmeticPreviewColor(id){
   const map={
-    amarillo:"#f3d53c",azul:"#4a9df3",verde:"#52c95a",turquesa:"#32c7c5",celeste:"#86d8ff",
-    rojo:"#e94e4e",naranja:"#f08a2f",rosa:"#ef78b8",coral:"#ef6f61",
-    morado:"#9a5de8",negro:"#2a2a2a",blanco:"#f8f8f2",dorado:"#e4b62c",metalico:"#b9c2cc",obsidiana:"#171821"
+    amarillo:"#f3d53c",
+    oceano:"#2f92b8",mandarina:"#f28a2e",menta:"#65c9a5",lavanda:"#9d82d9",
+    cobre:"#b86d3d",petroleo:"#256b73",borgona:"#7f3348",crema:"#ead8ad",
+    cobre_pulido:"#d98a49",medianoche_estelar:"#202846"
   };
   return map[id]||null;
 }
@@ -1320,20 +1344,9 @@ function drawGround(){
 function bodyColor(){
   const colors={
     amarillo:"#f3d53c",
-    azul:"#4a9df3",
-    verde:"#52c95a",
-    turquesa:"#32c7c5",
-    celeste:"#86d8ff",
-    rojo:"#e94e4e",
-    naranja:"#f08a2f",
-    rosa:"#ef78b8",
-    coral:"#ef6f61",
-    morado:"#9a5de8",
-    negro:"#2a2a2a",
-    blanco:"#f8f8f2",
-    dorado:"#e4b62c",
-    metalico:"#b9c2cc",
-    obsidiana:"#171821"
+    oceano:"#2f92b8",mandarina:"#f28a2e",menta:"#65c9a5",lavanda:"#9d82d9",
+    cobre:"#b86d3d",petroleo:"#256b73",borgona:"#7f3348",crema:"#ead8ad",
+    cobre_pulido:"#d98a49",medianoche_estelar:"#202846"
   };
   return colors[equipped.color]||colors.amarillo;
 }
@@ -1341,98 +1354,140 @@ function drawTrail(x,y){
   if(state!=="playing")return;
   const now=performance.now();
 
-  if(equipped.estela==="estela"){
-    for(let i=0;i<5;i++){
-      const xx=x-14-i*10,yy=y+bird.h/2+Math.sin(now/90+i)*4;
-      pxRect(xx,yy,5,5,["#ff5b5b","#ffd84d","#63d969","#4da6ff","#b56cff"][i]);
-    }
-  }else if(equipped.estela==="estela_estelar"){
+  if(equipped.estela==="polvo_ruta"){
     for(let i=0;i<7;i++){
-      const xx=x-12-i*11,yy=y+bird.h/2+Math.sin(now/75+i*.7)*7;
-      ctx.fillStyle=i%2===0?"#fff3a0":rainbowColor(i*45);
-      ctx.font='900 10px Arial';ctx.fillText(i%2===0?"★":"✦",xx,yy);
+      const xx=x-10-i*9,yy=y+bird.h/2+Math.sin(now/115+i*.8)*5;
+      const size=Math.max(2,6-i*.55);
+      pxRect(xx,yy,size,size,i%2?"#d88a42":"#f2c46d");
     }
+  }else if(equipped.estela==="estela_cronologica"){
+    for(let i=0;i<6;i++){
+      const xx=x-13-i*12,yy=y+bird.h/2+Math.sin(now/95+i)*5;
+      ctx.save();ctx.translate(xx,yy);ctx.strokeStyle=i%2?"#f0b04a":"#7fd0da";ctx.lineWidth=2;
+      ctx.beginPath();ctx.arc(0,0,5,0,Math.PI*2);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(0,-3);ctx.moveTo(0,0);ctx.lineTo(3,1);ctx.stroke();ctx.restore();
+    }
+  }else if(equipped.estela==="cometa_temporal"){
+    for(let i=0;i<9;i++){
+      const xx=x-10-i*10,yy=y+bird.h/2+Math.sin(now/70+i*.55)*6;
+      const size=Math.max(2,7-i*.45);
+      pxRect(xx,yy,size,size,i<3?"#fff1a3":i<6?"#f1a348":"#7fc4d8");
+    }
+    ctx.fillStyle="#fff8cf";ctx.font='900 11px Arial';ctx.fillText("✦",x-18,y+bird.h/2-5);
   }
 
-  if(equipped.efecto==="legendario"){
-    for(let i=0;i<6;i++){
-      const xx=x-18-i*12,yy=y+bird.h/2+Math.sin(now/65+i)*8;
-      pxRect(xx,yy,6,6,rainbowColor(i*55));
+  if(equipped.efecto==="crononauta_legendario"){
+    for(let i=0;i<7;i++){
+      const xx=x-18-i*12,yy=y+bird.h/2+Math.sin(now/62+i)*8;
+      pxRect(xx,yy,6,6,["#ffd56b","#f08a46","#63c9c1","#8297e8"][i%4]);
     }
   }
 }
 function drawBird(){
   const x=Math.round(bird.x),y=Math.round(bird.y),tilt=state==="playing"?Math.max(-.35,Math.min(.65,bird.vy/12)):0;
   const now=performance.now(),powered=jackpotActive,grace=!powered&&(now<jackpotGraceUntil||now<lifeGraceUntil);
-  const premium=equipped.efecto==="aura"||equipped.efecto==="holografico"||equipped.efecto==="legendario";
+  const premium=["destellos_viaje","portal_temporal","crononauta_legendario"].includes(equipped.efecto);
   const scale=powered?1.22:1;
 
   drawTrail(x,y);
 
+  // Effects that live outside the rotated bird silhouette.
+  if(equipped.efecto==="portal_temporal"||equipped.efecto==="crononauta_legendario"){
+    ctx.save();
+    const cx=x+bird.w/2,cy=y+bird.h/2;
+    ctx.strokeStyle=equipped.efecto==="crononauta_legendario"?"#ffd56b":"#69c9d0";
+    ctx.lineWidth=3;ctx.globalAlpha=.72;
+    ctx.beginPath();ctx.ellipse(cx,cy,30,19,now/950,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.42;ctx.beginPath();ctx.ellipse(cx,cy,36,23,-now/1250,0,Math.PI*2);ctx.stroke();
+    ctx.restore();
+  }
+
   ctx.save();ctx.translate(x+bird.w/2,y+bird.h/2);ctx.rotate(tilt);ctx.scale(scale,scale);ctx.translate(-bird.w/2,-bird.h/2);
   if(powered||grace||premium){
     ctx.shadowBlur=powered?22:premium?16:13;
-    ctx.shadowColor=powered||premium?rainbowColor(180):"#fff2a0";
+    ctx.shadowColor=powered?rainbowColor(180):equipped.efecto==="portal_temporal"?"#6ed3da":equipped.efecto==="crononauta_legendario"?"#ffbc5c":"#ffe4a0";
   }
 
   const body=powered?rainbowColor(0):bodyColor();
-  const hi=powered?rainbowColor(80):"#f6e55a";
-  const low=powered?rainbowColor(210):"#d8a926";
+  let hi=powered?rainbowColor(80):"#f6e55a";
+  let low=powered?rainbowColor(210):"#d8a926";
+  if(!powered&&equipped.color==="cobre_pulido"){hi="#ffd08a";low="#8f4d2b";}
+  if(!powered&&equipped.color==="medianoche_estelar"){hi="#6373ad";low="#11162b";}
 
   pxRect(5,5,24,20,"#222");pxRect(8,2,16,4,"#222");pxRect(8,25,18,4,"#222");
   pxRect(7,7,20,16,body);pxRect(10,4,12,4,hi);pxRect(8,20,16,5,low);
 
+  // Premium body finishes are visible even without an effect equipped.
+  if(!powered&&equipped.color==="cobre_pulido"){
+    pxRect(10,8,14,3,"#f7b96f");pxRect(9,12,4,5,"#ffd9a2");
+  }else if(!powered&&equipped.color==="medianoche_estelar"){
+    pxRect(11,9,3,3,"#fff1a3");pxRect(20,15,2,2,"#9ed6ff");pxRect(14,20,2,2,"#d5b8ff");
+  }
+
   // Wings
   pxRect(0,12,11,11,"#222");
-  if(equipped.alas==="alas_fuego"){
-    pxRect(-5,10,16,13,"#222");pxRect(-3,12,12,9,rainbowColor(20));pxRect(-7,15,6,5,"#ff6a2a");
+  if(equipped.alas==="alas_pergamino"){
+    pxRect(-3,10,14,13,"#222");pxRect(-1,12,11,9,"#d8c08a");
+    pxRect(1,14,7,2,"#9b7744");pxRect(1,18,5,2,"#9b7744");
+  }else if(equipped.alas==="alas_mecanicas"){
+    pxRect(-6,9,17,15,"#222");pxRect(-4,11,14,5,"#8a949e");pxRect(-6,18,12,4,"#c1c8cf");
+    pxRect(2,13,3,3,"#f0a33a");
   }else{
-    pxRect(2,14,9,7,equipped.alas==="alas"?"#ffd84d":powered?rainbowColor(130):"#f0bf2f");
+    pxRect(2,14,9,7,powered?rainbowColor(130):"#f0bf2f");
   }
 
   // Eye / glasses
   pxRect(23,7,10,10,"#fff");pxRect(29,10,4,4,"#111");
-  if(equipped.gafas==="gafas"){
-    pxRect(21,6,8,6,"#111");pxRect(30,6,8,6,"#111");pxRect(28,8,4,2,"#111");
-  }else if(equipped.gafas==="visera"){
-    pxRect(20,5,19,7,"#111");pxRect(22,7,15,3,rainbowColor(200));
+  if(equipped.gafas==="gafas_aviador"){
+    ctx.fillStyle="#29251f";ctx.beginPath();ctx.ellipse(25,10,5,4,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(34,10,5,4,0,0,Math.PI*2);ctx.fill();
+    pxRect(28,9,3,2,"#d9a24d");pxRect(24,8,3,2,"#7bc0d1");pxRect(33,8,3,2,"#7bc0d1");
+  }else if(equipped.gafas==="goggles_expedicion"){
+    pxRect(20,5,19,8,"#3f3428");pxRect(22,7,6,4,"#d6b56b");pxRect(31,7,6,4,"#d6b56b");pxRect(28,8,3,2,"#222");
   }
 
   // Beak
   pxRect(31,15,10,7,"#222");pxRect(33,16,8,5,powered?rainbowColor(300):"#f27d2f");
 
   // Hats
-  if(equipped.sombrero==="gorra"){
-    pxRect(8,-3,19,5,"#2155d9");pxRect(20,1,11,3,"#2155d9");
-  }else if(equipped.sombrero==="corona"){
-    pxRect(8,-4,20,5,"#ffd84d");
-    pxRect(9,-9,4,5,"#ffd84d");pxRect(16,-11,4,7,"#ffd84d");pxRect(23,-9,4,5,"#ffd84d");
-  }else if(equipped.sombrero==="helice"){
-    pxRect(8,-3,19,5,"#e94e4e");pxRect(16,-8,4,5,"#222");
-    const spin=Math.floor((now/80)%2);
-    if(spin===0)pxRect(9,-10,18,3,"#4a9df3");else pxRect(16,-15,3,13,"#4a9df3");
+  if(equipped.sombrero==="panuelo_aventurero"){
+    pxRect(7,0,20,4,"#c94c38");pxRect(4,3,24,4,"#c94c38");pxRect(3,6,7,3,"#8e3429");
+  }else if(equipped.sombrero==="sombrero_explorador"){
+    pxRect(6,-2,23,5,"#8d6b3d");pxRect(10,-8,15,7,"#ad8752");pxRect(9,-3,17,2,"#5d4328");pxRect(3,2,29,3,"#7c5a34");
+  }else if(equipped.sombrero==="casco_cronauta"){
+    pxRect(7,-5,22,8,"#d9e0e4");pxRect(10,-9,16,5,"#aab4bd");pxRect(10,-4,16,4,"#5fb8c3");pxRect(23,-7,4,3,"#ef9b3f");
   }
 
-  // Special accessory
-  if(equipped.accesorio==="estrella"){
-    ctx.fillStyle="#ffd84d";ctx.font='900 16px Arial';ctx.fillText("★",4,8);
-  }else if(equipped.accesorio==="rayo"){
-    ctx.fillStyle="#ffe14d";ctx.font='900 17px Arial';ctx.fillText("ϟ",2,8);
-  }else if(equipped.accesorio==="halo"){
-    ctx.strokeStyle="#fff3a1";ctx.lineWidth=3;ctx.beginPath();ctx.ellipse(18,-8,12,4,0,0,Math.PI*2);ctx.stroke();
+  // Accessories
+  if(equipped.accesorio==="brujula"){
+    ctx.save();ctx.strokeStyle="#d7a84d";ctx.fillStyle="#f2d484";ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(7,8,6,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.strokeStyle="#793f2f";ctx.beginPath();ctx.moveTo(7,4);ctx.lineTo(9,10);ctx.stroke();ctx.restore();
+  }else if(equipped.accesorio==="reloj_bolsillo"){
+    ctx.save();ctx.fillStyle="#dfb14c";ctx.strokeStyle="#71471f";ctx.lineWidth=2;
+    ctx.beginPath();ctx.arc(7,8,6,0,Math.PI*2);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(7,2);ctx.quadraticCurveTo(2,-2,4,-6);ctx.stroke();
+    ctx.strokeStyle="#71471f";ctx.beginPath();ctx.moveTo(7,8);ctx.lineTo(7,4);ctx.moveTo(7,8);ctx.lineTo(10,9);ctx.stroke();ctx.restore();
+  }else if(equipped.accesorio==="anillos_tiempo"){
+    ctx.save();ctx.translate(9,9);ctx.strokeStyle="#f6ca62";ctx.lineWidth=2;
+    ctx.beginPath();ctx.ellipse(0,0,9,4,now/500,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle="#65c4cf";ctx.beginPath();ctx.ellipse(0,0,9,4,-now/700,0,Math.PI*2);ctx.stroke();ctx.restore();
   }
 
   if(powered){
     const sx=7+((now/9)%20);pxRect(sx,7,4,15,"#fff");
   }
-  if(equipped.efecto==="holografico"){
-    ctx.globalAlpha=.38;pxRect(7,7,20,16,rainbowColor(120));ctx.globalAlpha=1;
-  }
-  if(equipped.efecto==="legendario"){
-    ctx.globalAlpha=.32;pxRect(5,5,24,20,rainbowColor(40));ctx.globalAlpha=1;
-    for(let i=0;i<4;i++){
-      const a=now/420+i*Math.PI/2;
-      pxRect(18+Math.cos(a)*22,14+Math.sin(a)*18,3,3,"#fff7a6");
+  if(equipped.efecto==="destellos_viaje"){
+    for(let i=0;i<3;i++){
+      const a=now/520+i*2.1;pxRect(18+Math.cos(a)*20,14+Math.sin(a)*15,3,3,i%2?"#fff0a6":"#f3a14b");
+    }
+  }else if(equipped.efecto==="portal_temporal"){
+    ctx.globalAlpha=.28;pxRect(7,7,20,16,"#6bcad0");ctx.globalAlpha=1;
+  }else if(equipped.efecto==="crononauta_legendario"){
+    ctx.globalAlpha=.30;pxRect(5,5,24,20,"#f2a548");ctx.globalAlpha=1;
+    for(let i=0;i<5;i++){
+      const a=now/380+i*Math.PI*2/5;
+      pxRect(18+Math.cos(a)*23,14+Math.sin(a)*18,3,3,i%2?"#fff0a0":"#73d0d2");
     }
   }
   ctx.restore();
