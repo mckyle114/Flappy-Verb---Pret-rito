@@ -108,6 +108,14 @@
     box-shadow:8px 8px 0 #0005;padding:24px;text-align:center;
   }
   .menuTitle{margin:0 0 10px;color:#d66516;font-size:clamp(28px,4vw,46px)}
+  .progressPanel{
+    margin:16px auto 4px;max-width:540px;border:4px solid #171717;background:#fffdf0;
+    padding:12px 14px;display:grid;gap:7px;text-align:left;font:900 14px "Courier New",monospace;
+  }
+  .progressRow{display:flex;justify-content:space-between;gap:14px;align-items:center}
+  .progressValue{color:#b94f0d;text-align:right}
+  #eliteBadge{display:none;margin-left:7px;padding:2px 7px;border:2px solid #171717;background:#ff9b2f;color:#171717}
+  #prizeStatus{display:none;margin-top:3px;padding:8px;text-align:center;border:3px solid #6f4700;background:#ffe27a;color:#6f4700;font-size:17px}
   .menuButtons{display:grid;gap:14px;margin-top:20px}
   .menuButtons button,.customBtn{
     font:900 19px "Courier New",monospace;padding:14px;border:4px solid #171717;
@@ -176,6 +184,12 @@
   <div class="menuCard">
     <h1 class="menuTitle">FLAPPY VERB</h1>
     <div style="font-weight:900;color:#d66516">PRETÉRITO</div>
+    <div class="progressPanel">
+      <div class="progressRow"><span>PROGRESO TOTAL</span><strong id="cumulativeDisplay" class="progressValue">0 / 1000</strong></div>
+      <div class="progressRow"><span>PRÓXIMO DESBLOQUEO</span><strong id="nextUnlockDisplay" class="progressValue">25</strong></div>
+      <div class="progressRow"><span>MEJOR PARTIDA</span><span><strong id="bestDisplay" class="progressValue">0 / 150</strong><span id="eliteBadge">ELITE</span></span></div>
+      <div id="prizeStatus">🏆 PREMIO DESBLOQUEADO</div>
+    </div>
     <div class="menuButtons">
       <button id="playBtn">JUGAR</button>
       <button id="customizeBtn">PERSONALIZAR AVE</button>
@@ -187,7 +201,7 @@
   <div class="menuCard">
     <div class="customHeader">
       <h2>PERSONALIZAR AVE</h2>
-      <div>Récord: <strong id="customBest">0</strong></div>
+      <div><span>Récord: <strong id="customBest">0</strong></span> · <span>Total: <strong id="customTotal">0</strong></span></div>
     </div>
     <div id="customGrid" class="customGrid"></div>
     <div class="customFooter">
@@ -223,6 +237,12 @@ const menuOverlay=document.getElementById("menuOverlay");
 const customizeOverlay=document.getElementById("customizeOverlay");
 const customGrid=document.getElementById("customGrid");
 const customBest=document.getElementById("customBest");
+const customTotal=document.getElementById("customTotal");
+const cumulativeDisplay=document.getElementById("cumulativeDisplay");
+const nextUnlockDisplay=document.getElementById("nextUnlockDisplay");
+const bestDisplay=document.getElementById("bestDisplay");
+const eliteBadge=document.getElementById("eliteBadge");
+const prizeStatus=document.getElementById("prizeStatus");
 const unlockToast=document.getElementById("unlockToast");
 const W=canvas.width,H=canvas.height,GROUND_H=90;
 
@@ -232,11 +252,16 @@ const W=canvas.width,H=canvas.height,GROUND_H=90;
 const questions=[{"id":1,"group":"yo","verb":"hablar","answer":"hablé","sentence":"Ayer yo _____ con mi abuela por teléfono.","wrong":["habló","hablaba"]},{"id":2,"group":"yo","verb":"comer","answer":"comí","sentence":"Al mediodía yo _____ una quesadilla antes de la práctica.","wrong":["comió","comía"]},{"id":3,"group":"yo","verb":"vivir","answer":"viví","sentence":"El año pasado yo _____ en otra ciudad durante tres meses.","wrong":["vivió","vivía"]},{"id":4,"group":"yo","verb":"buscar","answer":"busqué","sentence":"Anoche yo _____ mis audífonos por toda la casa.","wrong":["buscé","buscó"]},{"id":5,"group":"yo","verb":"llegar","answer":"llegué","sentence":"Ayer yo _____ a la escuela cinco minutos temprano.","wrong":["llegé","llegó"]},{"id":6,"group":"yo","verb":"empezar","answer":"empecé","sentence":"El lunes yo _____ un libro nuevo en la clase.","wrong":["empezé","empezó"]},{"id":7,"group":"yo","verb":"tener","answer":"tuve","sentence":"Ayer yo _____ una reunión después de la escuela.","wrong":["tení","tuvo"],"hard":true},{"id":8,"group":"yo","verb":"hacer","answer":"hice","sentence":"Anoche yo _____ toda la tarea antes de cenar.","wrong":["hací","hizo"],"hard":true},{"id":9,"group":"yo","verb":"poner","answer":"puse","sentence":"Esta mañana yo _____ mi mochila junto a la puerta.","wrong":["poní","puso"],"hard":true},{"id":10,"group":"yo","verb":"venir","answer":"vine","sentence":"Ayer yo _____ a la biblioteca para estudiar con un amigo.","wrong":["vení","vino"],"hard":true},{"id":11,"group":"yo","verb":"dar","answer":"di","sentence":"Ayer yo _____ mi proyecto al profesor al final de la clase.","wrong":["dio","daba"],"hard":true},{"id":12,"group":"yo","verb":"levantarse","answer":"me levanté","sentence":"El sábado yo _____ temprano para ir de excursión.","wrong":["se levantó","me levantaba"]},{"id":13,"group":"tu","verb":"estudiar","answer":"estudiaste","sentence":"Anoche tú _____ veinte minutos para el examen.","wrong":["estudió","estudiabas"]},{"id":14,"group":"tu","verb":"beber","answer":"bebiste","sentence":"Después del partido, tú _____ dos vasos de agua.","wrong":["bebió","bebías"]},{"id":15,"group":"tu","verb":"escribir","answer":"escribiste","sentence":"Ayer tú _____ un mensaje a tu compañero de grupo.","wrong":["escribió","escribías"]},{"id":16,"group":"tu","verb":"correr","answer":"corriste","sentence":"El sábado tú _____ tres kilómetros en el parque.","wrong":["corrió","corrías"]},{"id":17,"group":"tu","verb":"abrir","answer":"abriste","sentence":"Esta mañana tú _____ la ventana antes de empezar la clase.","wrong":["abrió","abrías"]},{"id":18,"group":"tu","verb":"estar","answer":"estuviste","sentence":"Ayer tú _____ en la biblioteca hasta las cinco.","wrong":["estabas","estuvo"],"hard":true},{"id":19,"group":"tu","verb":"poder","answer":"pudiste","sentence":"Finalmente tú _____ terminar el nivel antes de la cena.","wrong":["podiste","pudo"],"hard":true},{"id":20,"group":"tu","verb":"querer","answer":"quisiste","sentence":"Ayer tú _____ ayudar a tu amigo con el proyecto.","wrong":["queriste","quiso"],"hard":true},{"id":21,"group":"tu","verb":"saber","answer":"supiste","sentence":"Ayer tú _____ la respuesta después de leer la última pista.","wrong":["sabiste","supo"],"hard":true},{"id":22,"group":"tu","verb":"decir","answer":"dijiste","sentence":"En la reunión tú _____ exactamente lo que pasó.","wrong":["deciste","dijo"],"hard":true},{"id":23,"group":"tu","verb":"traer","answer":"trajiste","sentence":"Hoy tú _____ tu permiso firmado a la escuela.","wrong":["trajistes","trajo"],"hard":true},{"id":24,"group":"tu","verb":"ir","answer":"fuiste","sentence":"El fin de semana pasado tú _____ al cine con tus primos.","wrong":["fue","ibas"],"hard":true},{"id":25,"group":"el","verb":"trabajar","answer":"trabajó","sentence":"Ayer él _____ dos horas en su proyecto de ciencias.","wrong":["trabajo","trabajaba"]},{"id":26,"group":"el","verb":"aprender","answer":"aprendió","sentence":"En esa lección ella _____ una estrategia nueva.","wrong":["aprendía","aprendieron"]},{"id":27,"group":"el","verb":"abrir","answer":"abrió","sentence":"Esta mañana usted _____ la puerta a las ocho.","wrong":["abrío","abría"]},{"id":28,"group":"el","verb":"visitar","answer":"visitó","sentence":"El sábado ella _____ a sus abuelos en Boise.","wrong":["visitaba","visitaron"]},{"id":29,"group":"el","verb":"cocinar","answer":"cocinó","sentence":"Anoche él _____ pasta para toda su familia.","wrong":["cocinaba","cocinaron"]},{"id":30,"group":"el","verb":"ir","answer":"fue","sentence":"Después de clase ella _____ directamente a la práctica.","wrong":["iba","fueron"],"hard":true},{"id":31,"group":"el","verb":"ser","answer":"fue","sentence":"La presentación de ayer _____ muy corta y clara.","wrong":["era","fueron"],"hard":true},{"id":32,"group":"el","verb":"hacer","answer":"hizo","sentence":"Ayer él _____ un dibujo para explicar su idea.","wrong":["hació","hacía"],"hard":true},{"id":33,"group":"el","verb":"dormir","answer":"durmió","sentence":"Anoche ella _____ ocho horas completas.","wrong":["dormió","dormía"],"hard":true},{"id":34,"group":"el","verb":"pedir","answer":"pidió","sentence":"En el restaurante usted _____ una sopa y un vaso de agua.","wrong":["pedió","pedía"],"hard":true},{"id":35,"group":"el","verb":"leer","answer":"leyó","sentence":"Ayer ella _____ el artículo completo durante la clase.","wrong":["leió","leía"],"hard":true},{"id":36,"group":"el","verb":"oír","answer":"oyó","sentence":"De repente él _____ un ruido fuerte detrás de la puerta.","wrong":["oió","oía"],"hard":true},{"id":37,"group":"nosotros","verb":"terminar","answer":"terminamos","sentence":"Ayer nosotros _____ el proyecto antes del almuerzo.","wrong":["terminemos","terminábamos"]},{"id":38,"group":"nosotros","verb":"comer","answer":"comimos","sentence":"El viernes nosotros _____ juntos después del partido.","wrong":["comíamos","comieron"]},{"id":39,"group":"nosotros","verb":"vivir","answer":"vivimos","sentence":"El verano pasado nosotros _____ un mes con nuestros abuelos.","wrong":["vivíamos","vivieron"]},{"id":40,"group":"nosotros","verb":"practicar","answer":"practicamos","sentence":"Ayer nosotros _____ la presentación tres veces.","wrong":["practicábamos","practicaron"]},{"id":41,"group":"nosotros","verb":"ayudar","answer":"ayudamos","sentence":"El sábado nosotros _____ a limpiar el parque.","wrong":["ayudábamos","ayudaron"]},{"id":42,"group":"nosotros","verb":"tener","answer":"tuvimos","sentence":"Ayer nosotros _____ tiempo para jugar después de terminar la tarea.","wrong":["tenimos","teníamos"],"hard":true},{"id":43,"group":"nosotros","verb":"estar","answer":"estuvimos","sentence":"El domingo nosotros _____ en casa durante toda la tarde.","wrong":["estábamos","estuvieron"],"hard":true},{"id":44,"group":"nosotros","verb":"poder","answer":"pudimos","sentence":"Al final nosotros _____ resolver el problema sin ayuda.","wrong":["podimos","podíamos"],"hard":true},{"id":45,"group":"nosotros","verb":"poner","answer":"pusimos","sentence":"Antes de la fiesta nosotros _____ las sillas en un círculo.","wrong":["ponimos","poníamos"],"hard":true},{"id":46,"group":"nosotros","verb":"venir","answer":"vinimos","sentence":"Ayer nosotros _____ a la escuela para el ensayo.","wrong":["venimos","veníamos"],"hard":true},{"id":47,"group":"nosotros","verb":"decir","answer":"dijimos","sentence":"Después del juego nosotros _____ la verdad sobre lo que pasó.","wrong":["decimos","decíamos"],"hard":true},{"id":48,"group":"nosotros","verb":"divertirse","answer":"nos divertimos","sentence":"En la excursión nosotros _____ mucho con nuestros amigos.","wrong":["nos divertíamos","se divirtieron"],"hard":true},{"id":49,"group":"ellos","verb":"hablar","answer":"hablaron","sentence":"Ayer ellos _____ con el director después de clase.","wrong":["hablaban","habló"]},{"id":50,"group":"ellos","verb":"vender","answer":"vendieron","sentence":"El viernes ellas _____ todas las entradas para el evento.","wrong":["vendían","vendió"]},{"id":51,"group":"ellos","verb":"recibir","answer":"recibieron","sentence":"Ayer ustedes _____ los resultados por correo electrónico.","wrong":["recibían","recibió"]},{"id":52,"group":"ellos","verb":"caminar","answer":"caminaron","sentence":"Después de cenar ellos _____ hasta el parque y regresaron.","wrong":["caminaban","caminó"]},{"id":53,"group":"ellos","verb":"estudiar","answer":"estudiaron","sentence":"Anoche ellas _____ juntas durante una hora.","wrong":["estudiaban","estudió"]},{"id":54,"group":"ellos","verb":"ir","answer":"fueron","sentence":"El sábado ustedes _____ al museo con la clase.","wrong":["iban","fue"],"hard":true},{"id":55,"group":"ellos","verb":"tener","answer":"tuvieron","sentence":"Ayer ellos _____ dos exámenes en la misma mañana.","wrong":["tenieron","tenían"],"hard":true},{"id":56,"group":"ellos","verb":"hacer","answer":"hicieron","sentence":"Después de la práctica ellas _____ la tarea en la biblioteca.","wrong":["hacieron","hacían"],"hard":true},{"id":57,"group":"ellos","verb":"decir","answer":"dijeron","sentence":"Al final ustedes _____ sus respuestas al grupo.","wrong":["decieron","decían"],"hard":true},{"id":58,"group":"ellos","verb":"dormir","answer":"durmieron","sentence":"Después del viaje ellos _____ casi diez horas.","wrong":["dormieron","dormían"],"hard":true},{"id":59,"group":"ellos","verb":"oír","answer":"oyeron","sentence":"De repente ellas _____ una alarma en el pasillo.","wrong":["oieron","oían"],"hard":true},{"id":60,"group":"ellos","verb":"preferir","answer":"prefirieron","sentence":"Después de probar los dos juegos, ustedes _____ el segundo.","wrong":["preferieron","preferían"],"hard":true},{"id":61,"group":"nouns","verb":"comprar","answer":"compró","sentence":"Ayer Sofía _____ una libreta nueva para la clase.","wrong":["compraba","compraron"]},{"id":62,"group":"nouns","verb":"viajar","answer":"viajamos","sentence":"El verano pasado mi hermano y yo _____ a California con la familia.","wrong":["viajábamos","viajaron"]},{"id":63,"group":"nouns","verb":"comer","answer":"comieron","sentence":"Después del partido Ana y Mateo _____ pizza con el equipo.","wrong":["comían","comió"]},{"id":64,"group":"nouns","verb":"ganar","answer":"ganó","sentence":"El viernes el equipo _____ el partido por un punto.","wrong":["ganaba","ganaron"]},{"id":65,"group":"nouns","verb":"escribir","answer":"escribieron","sentence":"Ayer los estudiantes _____ una reflexión corta al final de la clase.","wrong":["escribían","escribió"]},{"id":66,"group":"nouns","verb":"poner","answer":"puso","sentence":"Antes de empezar, la profesora _____ las instrucciones en la pantalla.","wrong":["ponió","ponía"],"hard":true},{"id":67,"group":"nouns","verb":"venir","answer":"vinieron","sentence":"Ayer Elena y su hermana _____ a la reunión después de la escuela.","wrong":["venieron","venían"],"hard":true},{"id":68,"group":"nouns","verb":"poder","answer":"pudieron","sentence":"Al final mis padres _____ arreglar la bicicleta.","wrong":["podieron","podían"],"hard":true},{"id":69,"group":"nouns","verb":"estar","answer":"estuvo","sentence":"Ayer Carlos _____ en la oficina durante veinte minutos.","wrong":["estaba","estuvieron"],"hard":true},{"id":70,"group":"nouns","verb":"leer","answer":"leyeron","sentence":"Anoche mis amigos _____ el capítulo completo para la clase.","wrong":["leieron","leían"],"hard":true},{"id":71,"group":"nouns","verb":"construir","answer":"construyeron","sentence":"El sábado los voluntarios _____ una rampa nueva para el parque.","wrong":["construieron","construían"],"hard":true},{"id":72,"group":"nouns","verb":"caer","answer":"cayó","sentence":"Durante el almuerzo la botella _____ de la mesa al suelo.","wrong":["caió","caía"],"hard":true}];
 const irregularQuestions=questions.filter(q=>q.hard);
 const STORAGE={
-  best:"flappyVerbPreteriteBest_v1",
-  unlocks:"flappyVerbPreteriteUnlocks_v2",
-  equipped:"flappyVerbPreteriteEquipped_v2",
-  bundle:"flappyVerbPreteriteSave_v2"
+  best:"flappyVerbPreteriteBest_v3",
+  cumulative:"flappyVerbPreteriteCumulative_v3",
+  elite:"flappyVerbPreteriteElite_v3",
+  unlocks:"flappyVerbPreteriteUnlocks_v3",
+  equipped:"flappyVerbPreteriteEquipped_v3",
+  bundle:"flappyVerbPreteriteSave_v3"
 };
+const CUMULATIVE_TARGET=1000;
+const ELITE_TARGET=150;
+const cosmeticMilestones=[25,50,75,100,150,200,250,300,350,400,450,500,550,600,650,700,750,800,900,1000];
 function storageAvailable(){
   try{
     const k="__flappyVerbPreteriteStorageTest__";
@@ -262,47 +287,50 @@ const savedBundle=safeJSON(safeGet(STORAGE.bundle),{});
 // PRETÉRITO EXCLUSIVE COSMETICS: "Cronoaventura"
 // A coherent adventure-through-time progression unique to this tense version.
 const cosmeticDefs=[
-  // 10: starter palette gives immediate personalization without feeling premium.
-  {id:"oceano",score:10,category:"color",name:"Océano",preview:"●"},
-  {id:"mandarina",score:10,category:"color",name:"Mandarina",preview:"●"},
-  {id:"menta",score:10,category:"color",name:"Menta",preview:"●"},
-  {id:"lavanda",score:10,category:"color",name:"Lavanda",preview:"●"},
+  // 25 total: starter palette gives immediate personalization without feeling premium.
+  {id:"oceano",score:25,category:"color",name:"Océano",preview:"●"},
+  {id:"mandarina",score:25,category:"color",name:"Mandarina",preview:"●"},
+  {id:"menta",score:25,category:"color",name:"Menta",preview:"●"},
+  {id:"lavanda",score:25,category:"color",name:"Lavanda",preview:"●"},
 
-  // 20-40: recognizable adventurer silhouette and first motion reward.
-  {id:"panuelo_aventurero",score:20,category:"sombrero",name:"Pañuelo aventurero",preview:"◢"},
-  {id:"gafas_aviador",score:30,category:"gafas",name:"Gafas de aviador",preview:"◉"},
-  {id:"polvo_ruta",score:40,category:"estela",name:"Polvo de ruta",preview:"✦"},
+  // 50-100 total: recognizable adventurer silhouette and first motion reward.
+  {id:"panuelo_aventurero",score:50,category:"sombrero",name:"Pañuelo aventurero",preview:"◢"},
+  {id:"gafas_aviador",score:75,category:"gafas",name:"Gafas de aviador",preview:"◉"},
+  {id:"polvo_ruta",score:100,category:"estela",name:"Polvo de ruta",preview:"✦"},
 
-  // 50: richer earth-and-map palette.
-  {id:"cobre",score:50,category:"color",name:"Cobre",preview:"●"},
-  {id:"petroleo",score:50,category:"color",name:"Azul petróleo",preview:"●"},
-  {id:"borgona",score:50,category:"color",name:"Borgoña",preview:"●"},
-  {id:"crema",score:50,category:"color",name:"Crema",preview:"●"},
+  // 150 total: richer earth-and-map palette.
+  {id:"cobre",score:150,category:"color",name:"Cobre",preview:"●"},
+  {id:"petroleo",score:150,category:"color",name:"Azul petróleo",preview:"●"},
+  {id:"borgona",score:150,category:"color",name:"Borgoña",preview:"●"},
+  {id:"crema",score:150,category:"color",name:"Crema",preview:"●"},
 
-  // 60-90: the bird becomes a full explorer build.
-  {id:"alas_pergamino",score:60,category:"alas",name:"Alas de pergamino",preview:"≋"},
-  {id:"brujula",score:70,category:"accesorio",name:"Brújula",preview:"✥"},
-  {id:"sombrero_explorador",score:80,category:"sombrero",name:"Sombrero explorador",preview:"▰"},
-  {id:"destellos_viaje",score:90,category:"efecto",name:"Destellos de viaje",preview:"✧"},
+  // 200-350 total: the bird becomes a full explorer build.
+  {id:"alas_pergamino",score:200,category:"alas",name:"Alas de pergamino",preview:"≋"},
+  {id:"brujula",score:250,category:"accesorio",name:"Brújula",preview:"✥"},
+  {id:"sombrero_explorador",score:300,category:"sombrero",name:"Sombrero explorador",preview:"▰"},
+  {id:"destellos_viaje",score:350,category:"efecto",name:"Destellos de viaje",preview:"✧"},
 
-  // 100: clear midpoint status reward.
-  {id:"cobre_pulido",score:100,category:"color",name:"Cobre pulido",preview:"●"},
+  // 400 total: clear status reward.
+  {id:"cobre_pulido",score:400,category:"color",name:"Cobre pulido",preview:"●"},
 
-  // 110-150: advanced expedition / time-machine gear.
-  {id:"goggles_expedicion",score:110,category:"gafas",name:"Goggles de expedición",preview:"▣"},
-  {id:"estela_cronologica",score:120,category:"estela",name:"Estela cronológica",preview:"◌"},
-  {id:"alas_mecanicas",score:130,category:"alas",name:"Alas mecánicas",preview:"≋"},
-  {id:"reloj_bolsillo",score:140,category:"accesorio",name:"Reloj de bolsillo",preview:"◷"},
-  {id:"cometa_temporal",score:150,category:"estela",name:"Cometa temporal",preview:"☄"},
+  // 450-650 total: advanced expedition / time-machine gear.
+  {id:"goggles_expedicion",score:450,category:"gafas",name:"Goggles de expedición",preview:"▣"},
+  {id:"estela_cronologica",score:500,category:"estela",name:"Estela cronológica",preview:"◌"},
+  {id:"alas_mecanicas",score:550,category:"alas",name:"Alas mecánicas",preview:"≋"},
+  {id:"reloj_bolsillo",score:600,category:"accesorio",name:"Reloj de bolsillo",preview:"◷"},
+  {id:"cometa_temporal",score:650,category:"estela",name:"Cometa temporal",preview:"☄"},
 
-  // 160-190: unmistakably elite cosmetics.
-  {id:"casco_cronauta",score:160,category:"sombrero",name:"Casco crononauta",preview:"◒"},
-  {id:"portal_temporal",score:170,category:"efecto",name:"Portal temporal",preview:"◎"},
-  {id:"medianoche_estelar",score:180,category:"color",name:"Medianoche estelar",preview:"●"},
-  {id:"anillos_tiempo",score:190,category:"accesorio",name:"Anillos del tiempo",preview:"⊚"},
+  // 700-900 total: late-game chrononaut cosmetics.
+  {id:"casco_cronauta",score:700,category:"sombrero",name:"Casco crononauta",preview:"◒"},
+  {id:"portal_temporal",score:750,category:"efecto",name:"Portal temporal",preview:"◎"},
+  {id:"medianoche_estelar",score:800,category:"color",name:"Medianoche estelar",preview:"●"},
+  {id:"anillos_tiempo",score:900,category:"accesorio",name:"Anillos del tiempo",preview:"⊚"},
 
-  // 200: layered capstone that still respects all equipped cosmetics.
-  {id:"crononauta_legendario",score:200,category:"efecto",name:"Crononauta legendario",preview:"★"}
+  // 1000 total: layered cumulative capstone that still respects all equipped cosmetics.
+  {id:"crononauta_legendario",score:1000,category:"efecto",name:"Crononauta legendario",preview:"★"},
+
+  // ELITE: only a 150-point single run can unlock this exclusive effect.
+  {id:"fenix_temporal",score:null,elite:true,category:"efecto",name:"Fénix temporal",preview:"♛"}
 ];
 const categoryLabels={
   color:"Color",sombrero:"Sombrero",gafas:"Gafas",alas:"Alas",
@@ -317,8 +345,8 @@ const defaultEquipped={
 };
 let equipped=Object.assign({},defaultEquipped,safeJSON(safeGet(STORAGE.equipped),{}),savedBundle.equipped||{});
 
-// If a student tested an earlier preterite build, old cosmetic IDs should not
-// create invisible gear. Preserve the high score, but fall back cleanly per slot.
+// Fresh v3 progression starts everyone from zero, while still validating
+// equipped IDs in case the browser contains malformed data.
 for(const cat of Object.keys(defaultEquipped)){
   const allowed=new Set([defaultEquipped[cat],...cosmeticDefs.filter(x=>x.category===cat).map(x=>x.id)]);
   if(!allowed.has(equipped[cat]))equipped[cat]=defaultEquipped[cat];
@@ -355,7 +383,9 @@ function difficultyForScore(s){
 const bird={x:220,y:260,w:38,h:28,vy:0};
 const pipeWidth=88,pipeSpacing=355;
 let pipes=[],score=0,physicalScore=0;
-let best=Math.max(Number(safeGet(STORAGE.best)||0),Number(savedBundle.best||0));
+let best=Math.max(0,Number(safeGet(STORAGE.best)||0),Number(savedBundle.best||0));
+let cumulative=Math.max(0,Number(safeGet(STORAGE.cumulative)||0),Number(savedBundle.cumulative||0));
+let eliteEarned=(safeGet(STORAGE.elite)==="1")||savedBundle.eliteEarned===true;
 let state="ready",lastTime=performance.now();
 let groundOffset=0,cloudOffset=0;
 let currentQuestion=null,currentChoices=[],quizLocked=false;
@@ -549,22 +579,35 @@ function chooseQuestion(gold=false){
 function saveBundle(){
   safeSet(STORAGE.bundle,JSON.stringify({
     best,
+    cumulative,
+    eliteEarned,
     unlocks:[...unlocked],
     equipped,
     savedAt:Date.now()
   }));
 }
-function saveBest(){
+function saveProgress(){
   safeSet(STORAGE.best,String(best));
-  saveBundle();
-}
-function saveUnlocks(){
+  safeSet(STORAGE.cumulative,String(cumulative));
+  safeSet(STORAGE.elite,eliteEarned?"1":"0");
   safeSet(STORAGE.unlocks,JSON.stringify([...unlocked]));
   saveBundle();
 }
+function saveBest(){saveProgress()}
+function saveUnlocks(){saveProgress()}
 function saveEquipped(){
   safeSet(STORAGE.equipped,JSON.stringify(equipped));
   saveBundle();
+}
+function updateProgressUI(){
+  if(cumulativeDisplay)cumulativeDisplay.textContent=`${Math.min(cumulative,CUMULATIVE_TARGET)} / ${CUMULATIVE_TARGET}`;
+  const next=cosmeticMilestones.find(m=>cumulative<m);
+  if(nextUnlockDisplay)nextUnlockDisplay.textContent=next?String(next):"TODOS ✓";
+  if(bestDisplay)bestDisplay.textContent=`${best} / ${ELITE_TARGET}`;
+  if(eliteBadge)eliteBadge.style.display=eliteEarned?"inline-block":"none";
+  if(prizeStatus)prizeStatus.style.display=(cumulative>=CUMULATIVE_TARGET&&eliteEarned)?"block":"none";
+  if(customBest)customBest.textContent=best;
+  if(customTotal)customTotal.textContent=Math.min(cumulative,CUMULATIVE_TARGET);
 }
 function sfxUnlock(){
   if(!sfxEnabled)return;
@@ -574,52 +617,73 @@ function sfxUnlock(){
 }
 function rewardLabelForMilestone(points,items){
   const labels={
-    10:"Paleta de ruta",20:"Pañuelo aventurero",30:"Gafas de aviador",
-    40:"Polvo de ruta",50:"Paleta del atlas",60:"Alas de pergamino",
-    70:"Brújula",80:"Sombrero explorador",90:"Destellos de viaje",
-    100:"¡COBRE PULIDO!",110:"Goggles de expedición",120:"Estela cronológica",
-    130:"Alas mecánicas",140:"Reloj de bolsillo",150:"Cometa temporal",
-    160:"Casco crononauta",170:"Portal temporal",180:"Medianoche estelar",
-    190:"Anillos del tiempo",200:"¡CRONAUTA LEGENDARIO!"
+    25:"Paleta de ruta",50:"Pañuelo aventurero",75:"Gafas de aviador",
+    100:"Polvo de ruta",150:"Paleta del atlas",200:"Alas de pergamino",
+    250:"Brújula",300:"Sombrero explorador",350:"Destellos de viaje",
+    400:"¡COBRE PULIDO!",450:"Goggles de expedición",500:"Estela cronológica",
+    550:"Alas mecánicas",600:"Reloj de bolsillo",650:"Cometa temporal",
+    700:"Casco crononauta",750:"Portal temporal",800:"Medianoche estelar",
+    900:"Anillos del tiempo",1000:"¡CRONAUTA LEGENDARIO!"
   };
   return labels[points] || (items.length===1?items[0].name:`${items.length} nuevos objetos`);
 }
 function checkUnlocks(){
-  // Collect newly earned cosmetics, but announce each score milestone only once.
   const byMilestone=new Map();
-
   for(const item of cosmeticDefs){
-    if(score>=item.score&&!unlocked.has(item.id)){
+    if(item.elite)continue;
+    if(cumulative>=item.score&&!unlocked.has(item.id)){
       unlocked.add(item.id);
       if(!byMilestone.has(item.score))byMilestone.set(item.score,[]);
       byMilestone.get(item.score).push(item);
     }
   }
-
-  if(byMilestone.size){
-    saveUnlocks();
-    let delay=0;
-    const milestones=[...byMilestone.keys()].sort((a,b)=>a-b);
-    for(const points of milestones){
-      const items=byMilestone.get(points);
-      const reward={
-        score:points,
-        name:rewardLabelForMilestone(points,items)
-      };
-      setTimeout(()=>showUnlock(reward),delay);
-      delay+=1850;
-    }
+  if(!byMilestone.size)return 0;
+  saveProgress();
+  let delay=0;
+  const milestones=[...byMilestone.keys()].sort((a,b)=>a-b);
+  for(const points of milestones){
+    const items=byMilestone.get(points);
+    setTimeout(()=>showUnlock({score:points,name:rewardLabelForMilestone(points,items),total:true}),delay);
+    delay+=1850;
   }
+  return milestones.length;
 }
 function showUnlock(item){
   sfxUnlock();
-  unlockToast.innerHTML=`¡NUEVO DESBLOQUEO!<br><span style="font-size:14px">${item.name}</span><br><span style="font-size:11px">${item.score} puntos</span>`;
+  const suffix=item.elite?"150 en una partida":`${item.score} puntos totales`;
+  unlockToast.innerHTML=`¡NUEVO DESBLOQUEO!<br><span style="font-size:14px">${item.name}</span><br><span style="font-size:11px">${suffix}</span>`;
   unlockToast.classList.remove("show");
   void unlockToast.offsetWidth;
   unlockToast.classList.add("show");
 }
+function showEliteUnlock(){
+  showUnlock({name:"FÉNIX TEMPORAL · ELITE",elite:true});
+}
 function isUnlocked(id){
-  return cosmeticDefs.find(x=>x.id===id)?.score<=best || unlocked.has(id);
+  const item=cosmeticDefs.find(x=>x.id===id);
+  if(!item)return false;
+  if(item.elite)return eliteEarned||unlocked.has(id);
+  return cumulative>=item.score||unlocked.has(id);
+}
+function addPoints(n){
+  if(!Number.isFinite(n)||n<=0)return;
+  score+=n;
+  cumulative+=n;
+  syncPhysicalDifficultyToScore();
+  if(score>best)best=score;
+
+  let eliteJustEarned=false;
+  if(score>=ELITE_TARGET&&!eliteEarned){
+    eliteEarned=true;
+    unlocked.add("fenix_temporal");
+    eliteJustEarned=true;
+  }
+
+  // Every earned point is persisted immediately for Chromebook reliability.
+  saveProgress();
+  const standardUnlockCount=checkUnlocks();
+  if(eliteJustEarned)setTimeout(showEliteUnlock,standardUnlockCount?1900:0);
+  updateProgressUI();
 }
 function cosmeticPreviewColor(id){
   const map={
@@ -631,7 +695,7 @@ function cosmeticPreviewColor(id){
   return map[id]||null;
 }
 function buildCustomizer(){
-  customBest.textContent=best;
+  updateProgressUI();
   customGrid.innerHTML="";
   const cats=["color","sombrero","gafas","alas","estela","accesorio","efecto"];
   const defaults={
@@ -649,7 +713,7 @@ function buildCustomizer(){
     const options=document.createElement("div");options.className="options";
     const items=[...(defaults[cat]||[]),...cosmeticDefs.filter(x=>x.category===cat)];
     for(const item of items){
-      const locked=item.score&&!isUnlocked(item.id);
+      const locked=item.elite?!isUnlocked(item.id):(item.score&&!isUnlocked(item.id));
       const btn=document.createElement("button");btn.className="option";
       if(locked)btn.classList.add("locked");
       if(equipped[cat]===item.id)btn.classList.add("selected");
@@ -661,9 +725,12 @@ function buildCustomizer(){
       }
       const nm=document.createElement("div");nm.textContent=locked?`${categoryLabels[cat].toUpperCase()}: ???`:item.name;
       btn.append(pv,nm);
-      if(item.score){
+      if(item.elite){
         const req=document.createElement("div");req.className="req";
-        req.textContent=`Se desbloquea con ${item.score} puntos`;btn.appendChild(req);
+        req.textContent="ELITE: 150 en una partida";btn.appendChild(req);
+      }else if(item.score){
+        const req=document.createElement("div");req.className="req";
+        req.textContent=`Se desbloquea con ${item.score} puntos totales`;btn.appendChild(req);
       }
       if(!locked){
         btn.onclick=()=>{
@@ -678,14 +745,13 @@ function buildCustomizer(){
 function bootstrapUnlocks(){
   let changed=false;
   for(const item of cosmeticDefs){
-    if(best>=item.score&&!unlocked.has(item.id)){
-      unlocked.add(item.id);
-      changed=true;
-    }
+    const earned=item.elite?eliteEarned:(cumulative>=item.score);
+    if(earned&&!unlocked.has(item.id)){unlocked.add(item.id);changed=true}
   }
-  if(changed)saveUnlocks();
+  if(changed)saveProgress();
 }
 function showMainMenu(){
+  updateProgressUI();
   menuOverlay.style.display="flex";customizeOverlay.style.display="none";
 }
 function hideMainMenu(){menuOverlay.style.display="none"}
@@ -1024,11 +1090,8 @@ function updateCoins(dt,now,speed){
     }
     if(Math.hypot(bx-c.x,by-c.y)<c.r+19){
       c.collected=true;
-      score+=1;
-      syncPhysicalDifficultyToScore();
+      addPoints(1);
       sfxCoin(1);
-      if(score>best){best=score;saveBest()}
-      checkUnlocks();
     }
   }
   jackpotCoins=jackpotCoins.filter(c=>!c.collected);
@@ -1051,10 +1114,9 @@ function submitChoice(index){
       sfxCorrect();
     }else{
       feedbackEl.textContent="¡Correcto! +2";
-      score+=2;syncPhysicalDifficultyToScore();sfxCorrect();
+      addPoints(2);sfxCorrect();
     }
-    if(score>best){best=score;saveBest()}
-    if(!currentQuizIsGold)checkUnlocks();
+    if(!currentQuizIsGold)updateProgressUI();
     const wonGold=currentQuizIsGold;
     setTimeout(()=>{
       closeQuiz();activePipe=null;currentQuestion=null;currentQuizIsGold=false;
@@ -1124,16 +1186,13 @@ function update(dt,now){
       p.passed=true;totalPassed++;
       if(jackpotActive){
         // Bonus mode: every pipe is an automatic +1 and never interrupts play.
-        score+=1;syncPhysicalDifficultyToScore();sfxPass();
-        if(score>best){best=score;saveBest()}checkUnlocks()
+        addPoints(1);sfxPass();
       }else if(p.gold||p.isVerb){
         // Gold pipes always quiz. Every third non-gold pipe is a verb pipe.
         openQuiz(p);return;
       }else{
         // Ordinary pipes keep the flight flowing and are worth +1.
-        score+=1;syncPhysicalDifficultyToScore();sfxPass();
-        if(score>best){best=score;saveBest()}
-        checkUnlocks();
+        addPoints(1);sfxPass();
       }
     }
 
@@ -1376,7 +1435,13 @@ function drawTrail(x,y){
     ctx.fillStyle="#fff8cf";ctx.font='900 11px Arial';ctx.fillText("✦",x-18,y+bird.h/2-5);
   }
 
-  if(equipped.efecto==="crononauta_legendario"){
+  if(equipped.efecto==="fenix_temporal"){
+    for(let i=0;i<10;i++){
+      const xx=x-8-i*9,yy=y+bird.h/2+Math.sin(now/48+i*.65)*8;
+      const c=i%3===0?"#fff19a":i%2?"#ff7b2d":"#e23e67";
+      pxRect(xx,yy,Math.max(2,7-i*.45),Math.max(2,7-i*.45),c);
+    }
+  }else if(equipped.efecto==="crononauta_legendario"){
     for(let i=0;i<7;i++){
       const xx=x-18-i*12,yy=y+bird.h/2+Math.sin(now/62+i)*8;
       pxRect(xx,yy,6,6,["#ffd56b","#f08a46","#63c9c1","#8297e8"][i%4]);
@@ -1386,26 +1451,29 @@ function drawTrail(x,y){
 function drawBird(){
   const x=Math.round(bird.x),y=Math.round(bird.y),tilt=state==="playing"?Math.max(-.35,Math.min(.65,bird.vy/12)):0;
   const now=performance.now(),powered=jackpotActive,grace=!powered&&(now<jackpotGraceUntil||now<lifeGraceUntil);
-  const premium=["destellos_viaje","portal_temporal","crononauta_legendario"].includes(equipped.efecto);
+  const premium=["destellos_viaje","portal_temporal","crononauta_legendario","fenix_temporal"].includes(equipped.efecto);
   const scale=powered?1.22:1;
 
   drawTrail(x,y);
 
   // Effects that live outside the rotated bird silhouette.
-  if(equipped.efecto==="portal_temporal"||equipped.efecto==="crononauta_legendario"){
+  if(equipped.efecto==="portal_temporal"||equipped.efecto==="crononauta_legendario"||equipped.efecto==="fenix_temporal"){
     ctx.save();
     const cx=x+bird.w/2,cy=y+bird.h/2;
-    ctx.strokeStyle=equipped.efecto==="crononauta_legendario"?"#ffd56b":"#69c9d0";
+    ctx.strokeStyle=equipped.efecto==="fenix_temporal"?"#ff6a2a":equipped.efecto==="crononauta_legendario"?"#ffd56b":"#69c9d0";
     ctx.lineWidth=3;ctx.globalAlpha=.72;
     ctx.beginPath();ctx.ellipse(cx,cy,30,19,now/950,0,Math.PI*2);ctx.stroke();
     ctx.globalAlpha=.42;ctx.beginPath();ctx.ellipse(cx,cy,36,23,-now/1250,0,Math.PI*2);ctx.stroke();
+    if(equipped.efecto==="fenix_temporal"){
+      ctx.strokeStyle="#ef3f67";ctx.globalAlpha=.55;ctx.beginPath();ctx.ellipse(cx,cy,40,16,now/700,0,Math.PI*2);ctx.stroke();
+    }
     ctx.restore();
   }
 
   ctx.save();ctx.translate(x+bird.w/2,y+bird.h/2);ctx.rotate(tilt);ctx.scale(scale,scale);ctx.translate(-bird.w/2,-bird.h/2);
   if(powered||grace||premium){
     ctx.shadowBlur=powered?22:premium?16:13;
-    ctx.shadowColor=powered?rainbowColor(180):equipped.efecto==="portal_temporal"?"#6ed3da":equipped.efecto==="crononauta_legendario"?"#ffbc5c":"#ffe4a0";
+    ctx.shadowColor=powered?rainbowColor(180):equipped.efecto==="fenix_temporal"?"#ff6936":equipped.efecto==="portal_temporal"?"#6ed3da":equipped.efecto==="crononauta_legendario"?"#ffbc5c":"#ffe4a0";
   }
 
   const body=powered?rainbowColor(0):bodyColor();
@@ -1483,6 +1551,12 @@ function drawBird(){
     }
   }else if(equipped.efecto==="portal_temporal"){
     ctx.globalAlpha=.28;pxRect(7,7,20,16,"#6bcad0");ctx.globalAlpha=1;
+  }else if(equipped.efecto==="fenix_temporal"){
+    ctx.globalAlpha=.30;pxRect(5,5,24,20,"#ff632f");ctx.globalAlpha=1;
+    for(let i=0;i<6;i++){
+      const a=now/300+i*Math.PI/3;
+      pxRect(18+Math.cos(a)*24,14+Math.sin(a)*18,4,4,i%2?"#fff08c":"#ef3f67");
+    }
   }else if(equipped.efecto==="crononauta_legendario"){
     ctx.globalAlpha=.30;pxRect(5,5,24,20,"#f2a548");ctx.globalAlpha=1;
     for(let i=0;i<5;i++){
@@ -1527,7 +1601,7 @@ function panel(title,lines,footer){
 function draw(){
   drawSky();for(const p of pipes)drawPipe(p);drawCoins();drawHeartPickups();drawGround();drawBird();drawScore();drawLives();drawJackpotCountdown();
   if(state==="ready")panel("FLAPPY VERB",["PRETÉRITO","Vuela. Pasa. Elige."],"ESPACIO / CLIC para empezar");
-  if(state==="gameover")panel("FIN DEL JUEGO",[`PUNTUACIÓN: ${score}`,`MEJOR: ${best}`],"Elige JUGAR o PERSONALIZAR AVE");
+  if(state==="gameover")panel("FIN DEL JUEGO",[`PUNTUACIÓN: ${score}`,`TOTAL: ${Math.min(cumulative,CUMULATIVE_TARGET)} / ${CUMULATIVE_TARGET}`,eliteEarned?`MEJOR: ${best} · ELITE ✓`:`MEJOR: ${best} / ${ELITE_TARGET}`],"Elige JUGAR o PERSONALIZAR AVE");
 }
 
 function loop(now){
@@ -1571,6 +1645,7 @@ window.addEventListener("pagehide",saveBundle);
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")saveBundle()});
 
 bootstrapUnlocks();
+updateProgressUI();
 resetGame();
 showMainMenu();
 
