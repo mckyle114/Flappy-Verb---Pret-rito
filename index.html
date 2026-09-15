@@ -390,14 +390,15 @@ let state="ready",lastTime=performance.now();
 let groundOffset=0,cloudOffset=0;
 let currentQuestion=null,currentChoices=[],quizLocked=false;
 let questionDeck=[],hardQuestionDeck=[],lastMainQuestionId=null,lastHardQuestionId=null;
-let activePipe=null,currentQuizIsGold=false;
+let activePipe=null,currentQuizIsGold=false,currentQuizWasDuringJackpot=false;
 let totalPassed=0,totalGenerated=0,normalGenerated=0;
 
 // Jackpot power-up state
-let jackpotActive=false,jackpotStartMs=0,jackpotGraceUntil=0;
+let jackpotActive=false,megaJackpotActive=false,jackpotStartMs=0,jackpotGraceUntil=0;
 let jackpotDurationMs=10000,jackpotGraceMs=2000;
 let jackpotCoins=[],jackpotCoinTarget=0,jackpotCoinsSpawned=0;
-let jackpotCoinWaveTimes=[],jackpotCoinWaveSizes=[],jackpotCoinWaveIndex=0;
+let jackpotCoinSchedule=[];
+let jackpotQuizPauseStarted=0;
 let jackpotCountdownPulse=0,jackpotImpactFlash=0;
 let lastJackpotWrapMs=0;
 
@@ -495,11 +496,22 @@ function sfxJackpot(){
     tone(f,t+.48+i*.055,.07,.035,"triangle");
   }
 }
+function sfxMegaJackpot(){
+  if(!sfxEnabled)return;
+  const t=ensureAudio().currentTime;
+  [523.25,659.25,783.99,1046.5,1318.51,1567.98,2093].forEach((f,i)=>tone(f,t+i*.055,.13,.075,"square"));
+  for(let i=0;i<18;i++)tone([1046.5,1318.51,1567.98,2093][i%4],t+.42+i*.045,.08,.045,"triangle");
+  noise(t+.1,.8,.018,"sfx",9000);
+}
 function targetMusicMs(){
-  if(score<=20)return 235/(1+0.014*Math.max(0,score));
-  const at20=235/(1+0.014*20);
-  const t=Math.min((score-20)/180,1);
-  return at20-18*t;
+  let base;
+  if(score<=20)base=235/(1+0.014*Math.max(0,score));
+  else{
+    const at20=235/(1+0.014*20);
+    const t=Math.min((score-20)/180,1);
+    base=at20-18*t;
+  }
+  return megaJackpotActive?base*.88:base;
 }
 function playMusicStep(){
   if(!musicEnabled||state==="ready"||state==="gameover")return;
@@ -551,8 +563,11 @@ function goldChance(){
   // 1% initially, +1 percentage point every 7 passed pipes, capped at 7%.
   return Math.min(.01+Math.floor(totalPassed/7)*.01,.07);
 }
-function shouldBeGold(){
-  return Math.random()<goldChance();
+function shouldBeGold(inJackpot=false){
+  // During a jackpot, slightly boost the chance of another gold pipe so
+  // a MEGA JACKPOT is rare but realistically achievable. Keep the same 7% cap.
+  const chance=inJackpot?Math.min(goldChance()*2,.07):goldChance();
+  return Math.random()<chance;
 }
 function shuffledCopy(pool){
   const a=[...pool];
@@ -762,10 +777,10 @@ function hideMainMenu(){menuOverlay.style.display="none"}
 function resetGame(){
   bird.y=255;bird.vy=0;score=0;physicalScore=0;
   lives=maxLives;lifeGraceUntil=0;heartPickups=[];heartMessage="";heartMessageUntil=0;
-  jackpotActive=false;jackpotStartMs=0;jackpotGraceUntil=0;jackpotCoins=[];
-  jackpotCoinWaveTimes=[];jackpotCoinWaveSizes=[];jackpotCoinWaveIndex=0;
+  jackpotActive=false;megaJackpotActive=false;jackpotStartMs=0;jackpotGraceUntil=0;jackpotCoins=[];
+  jackpotDurationMs=10000;jackpotCoinSchedule=[];jackpotQuizPauseStarted=0;
   jackpotCountdownPulse=0;jackpotImpactFlash=0;
-  pipes=[];state="ready";activePipe=null;currentQuestion=null;currentQuizIsGold=false;
+  pipes=[];state="ready";activePipe=null;currentQuestion=null;currentQuizIsGold=false;currentQuizWasDuringJackpot=false;
   totalPassed=0;totalGenerated=0;normalGenerated=0;questionDeck=[];hardQuestionDeck=[];lastMainQuestionId=null;lastHardQuestionId=null;closeQuiz();stopMusic();musicStep=0;musicCurrentMs=235;
   if(audioCtx&&musicBus)musicBus.gain.value=.72;celebration.classList.remove("play");celebration.style.display="none";
   const firstX=680;
@@ -780,7 +795,7 @@ function addPipe(x,prev=null){
     target=Math.max(prev.topH-maxStep,Math.min(prev.topH+maxStep,target));
   }
   const topH=Math.max(safeTop,Math.min(safeBottom,Math.round(target)));
-  const gold=!jackpotActive&&shouldBeGold();
+  const gold=shouldBeGold(jackpotActive);
   totalGenerated++;
   let isVerb=false;
   if(!gold){
@@ -924,17 +939,21 @@ function renderChoices(){
   });
 }
 function openQuiz(pipe){
+  currentQuizWasDuringJackpot=Boolean(pipe.gold&&jackpotActive);
+  if(currentQuizWasDuringJackpot)jackpotQuizPauseStarted=performance.now();
   state="quiz";activePipe=pipe;currentQuizIsGold=pipe.gold;quizLocked=false;
   currentQuestion=pipe.question || chooseQuestion(pipe.gold);
   currentChoices=shuffleChoices([currentQuestion.answer,...currentQuestion.wrong]);
   quizCard.classList.toggle("gold",pipe.gold);
-  document.getElementById("quizTitle").textContent=pipe.gold?"¡DESAFÍO JACKPOT!":"¡EL PRETÉRITO!";
+  document.getElementById("quizTitle").textContent=currentQuizWasDuringJackpot
+    ?"¡DESAFÍO MEGA JACKPOT!"
+    :(pipe.gold?"¡DESAFÍO JACKPOT!":"¡EL PRETÉRITO!");
   promptEl.textContent=currentQuestion.sentence;
   verbHintEl.textContent=`Infinitivo: ${currentQuestion.verb}`;
   feedbackEl.textContent="";attemptsEl.textContent="Una oportunidad";
-  quizFooter.textContent=pipe.gold
-    ?"JACKPOT: elige la forma correcta. Haz clic o usa 1, 2, 3."
-    :"Elige la forma correcta. Haz clic o usa las teclas 1, 2, 3.";
+  quizFooter.textContent=currentQuizWasDuringJackpot
+    ?"MEGA JACKPOT: acierta para añadir tiempo y muchísimas monedas."
+    :(pipe.gold?"JACKPOT: elige la forma correcta. Haz clic o usa 1, 2, 3.":"Elige la forma correcta. Haz clic o usa las teclas 1, 2, 3.");
   renderChoices();overlay.style.display="flex";
   duckMusic();
   if(pipe.gold)sfxGoldPass();else sfxPass();
@@ -949,9 +968,15 @@ function syncPhysicalDifficultyToScore(){
   // Outside jackpot, flight difficulty follows the current earned score.
   physicalScore=score;
 }
-function showJackpotCelebration(){
-  celebration.innerHTML='<div id="jackpotText">¡JACKPOT!</div>';
-  for(let i=0;i<24;i++){
+function resumeJackpotTimerFromQuiz(){
+  if(!jackpotQuizPauseStarted)return;
+  const paused=Math.max(0,performance.now()-jackpotQuizPauseStarted);
+  jackpotStartMs+=paused;
+  jackpotQuizPauseStarted=0;
+}
+function showJackpotCelebration(mega=false){
+  celebration.innerHTML=`<div id="jackpotText" style="${mega?'font-size:58px;text-shadow:0 0 12px #fff,0 0 26px #ff4fd8,0 0 38px #4df2ff;':''}">${mega?'¡MEGA JACKPOT!':'¡JACKPOT!'}</div>`;
+  for(let i=0;i<(mega?42:28);i++){
     const c=document.createElement("div");c.className="coin";
     c.style.left=(2+Math.random()*96)+"%";
     c.style.setProperty("--delay",(Math.random()*.42)+"s");
@@ -1017,31 +1042,51 @@ function spawnCoinTrail(requestedCount){
     jackpotCoinsSpawned++;
   }
 }
-function prepareJackpotCoinWaves(){
-  // Five evenly spaced waves keep coins present from start to finish.
-  // Each wave now forms a slightly longer 3-4 coin path.
-  // Spawn the final wave early enough to physically reach the bird before the 10-second timer ends.
-  jackpotCoinWaveTimes=[0,1500,3000,4500,6000];
-  const base=Math.floor(jackpotCoinTarget/jackpotCoinWaveTimes.length);
-  const extra=jackpotCoinTarget%jackpotCoinWaveTimes.length;
-  jackpotCoinWaveSizes=new Array(jackpotCoinWaveTimes.length).fill(base);
-
-  // Randomize which waves receive the extra coin while keeping every wave at 3-4 coins.
-  const order=[0,1,2,3,4].sort(()=>Math.random()-.5);
-  for(let i=0;i<extra;i++)jackpotCoinWaveSizes[order[i]]++;
-  jackpotCoinWaveIndex=0;
+function scheduleCoinWaves(totalCoins,startElapsed=0,windowMs=6000){
+  // Keep each visible trail to 3-4 coins so it physically fits in the open
+  // lane between pipe columns. Larger jackpots use more waves, not impossible
+  // 8-10 coin clumps that would extend across pipe bodies.
+  const waves=Math.max(1,Math.ceil(totalCoins/4));
+  const base=Math.floor(totalCoins/waves);
+  const extra=totalCoins%waves;
+  const sizes=new Array(waves).fill(base);
+  const order=[...Array(waves).keys()].sort(()=>Math.random()-.5);
+  for(let i=0;i<extra;i++)sizes[order[i]]++;
+  for(let i=0;i<waves;i++){
+    const t=startElapsed+(waves===1?0:(windowMs*i/(waves-1)));
+    jackpotCoinSchedule.push({time:t,count:sizes[i]});
+  }
+  jackpotCoinSchedule.sort((a,b)=>a.time-b.time);
 }
 function startJackpot(){
   const now=performance.now();
-  jackpotActive=true;jackpotStartMs=now;jackpotGraceUntil=0;
-  jackpotCoins=[];
-  jackpotCoinTarget=15+Math.floor(Math.random()*6); // exactly 15-20 coins total
+  jackpotActive=true;megaJackpotActive=false;jackpotStartMs=now;jackpotGraceUntil=0;
+  jackpotDurationMs=10000;jackpotCoins=[];jackpotCoinSchedule=[];
+  jackpotCoinTarget=25+Math.floor(Math.random()*6); // 25-30 coins in a normal jackpot
   jackpotCoinsSpawned=0;
-  prepareJackpotCoinWaves();
-  spawnCoinTrail(jackpotCoinWaveSizes[0]);
-  jackpotCoinWaveIndex=1;
-  showJackpotCelebration();sfxJackpot();
+  scheduleCoinWaves(jackpotCoinTarget,0,6000);
+  showJackpotCelebration(false);sfxJackpot();
   restoreMusic();
+}
+function triggerMegaJackpot(){
+  if(!jackpotActive){startJackpot();return;}
+  const now=performance.now();
+  const elapsed=jackpotElapsed(now);
+  const before=Math.max(0,jackpotDurationMs-elapsed);
+  const after=Math.min(30000,before+10000);
+  const actuallyAdded=Math.max(0,after-before);
+  jackpotDurationMs=elapsed+after;
+  megaJackpotActive=true;
+
+  // A full 10-second MEGA extension gives 45-60 new coins. If the 30-second
+  // cap trims the extension, scale the extra coins proportionally.
+  const fullMegaCoins=45+Math.floor(Math.random()*16);
+  const phaseCoins=Math.max(8,Math.round(fullMegaCoins*Math.max(.15,actuallyAdded/10000)));
+  jackpotCoinTarget+=phaseCoins;
+  const waveWindow=Math.max(2200,Math.min(6000,actuallyAdded*.65||2200));
+  scheduleCoinWaves(phaseCoins,elapsed,waveWindow);
+
+  showJackpotCelebration(true);sfxMegaJackpot();restoreMusic();
 }
 function jackpotElapsed(now){return jackpotActive?now-jackpotStartMs:0}
 function jackpotRemaining(now){return Math.max(0,jackpotDurationMs-jackpotElapsed(now))}
@@ -1056,9 +1101,9 @@ function jackpotSpeedFactor(now){
 }
 function endJackpot(now){
   if(!jackpotActive)return;
-  jackpotActive=false;
+  jackpotActive=false;megaJackpotActive=false;
   jackpotGraceUntil=now+jackpotGraceMs;
-  jackpotCoins=[];
+  jackpotCoins=[];jackpotCoinSchedule=[];
   syncPhysicalDifficultyToScore();
 }
 function isCollisionProtected(now){
@@ -1071,22 +1116,24 @@ function updateCoins(dt,now,speed){
   for(const c of jackpotCoins)c.x-=speed*f;
   jackpotCoins=jackpotCoins.filter(c=>!c.collected&&c.x>-60);
 
-  // Time-based spawning keeps the 15-20 coins distributed across all 10 seconds.
-  // Waves arrive at roughly 0, 1.5, 3, 4.5, and 6 seconds so the last coins remain collectible.
+  // Scheduled waves let normal and MEGA coin phases overlap cleanly while
+  // still spawning early enough for the final coins to be collectible.
   const elapsed=jackpotElapsed(now);
-  while(jackpotCoinWaveIndex<jackpotCoinWaveTimes.length && elapsed>=jackpotCoinWaveTimes[jackpotCoinWaveIndex]){
-    spawnCoinTrail(jackpotCoinWaveSizes[jackpotCoinWaveIndex]);
-    jackpotCoinWaveIndex++;
+  while(jackpotCoinSchedule.length&&elapsed>=jackpotCoinSchedule[0].time){
+    const wave=jackpotCoinSchedule.shift();
+    spawnCoinTrail(wave.count);
   }
 
-  // Moderate magnet: helpful for near-misses, but still requires following the trail.
+  // MEGA JACKPOT gets a noticeably stronger magnet.
   const bx=bird.x+bird.w/2,by=bird.y+bird.h/2;
+  const magnetRadius=megaJackpotActive?132:96;
+  const magnetStrength=megaJackpotActive?.105:.075;
   for(const c of jackpotCoins){
     const dx=bx-c.x,dy=by-c.y,dist=Math.hypot(dx,dy);
-    if(dist<96 && dist>1){
-      const pull=(96-dist)/96;
-      c.x+=dx*.075*pull*f;
-      c.y+=dy*.075*pull*f;
+    if(dist<magnetRadius && dist>1){
+      const pull=(magnetRadius-dist)/magnetRadius;
+      c.x+=dx*magnetStrength*pull*f;
+      c.y+=dy*magnetStrength*pull*f;
     }
     if(Math.hypot(bx-c.x,by-c.y)<c.r+19){
       c.collected=true;
@@ -1105,23 +1152,28 @@ function submitChoice(index){
   const chosen=currentChoices[index];
   const correctIndex=currentChoices.indexOf(currentQuestion.answer);
   const isCorrect=normalizeAnswer(chosen)===normalizeAnswer(currentQuestion.answer);
+  const wonGold=currentQuizIsGold;
+  const wasMegaAttempt=currentQuizWasDuringJackpot;
 
   if(isCorrect){
     buttons[index]?.classList.add("correct");
     feedbackEl.style.color="#238124";
-    if(currentQuizIsGold){
-      feedbackEl.textContent="¡Correcto! ¡JACKPOT ACTIVADO!";
+    if(wonGold){
+      feedbackEl.textContent=wasMegaAttempt?"¡Correcto! ¡MEGA JACKPOT!":"¡Correcto! ¡JACKPOT ACTIVADO!";
       sfxCorrect();
     }else{
       feedbackEl.textContent="¡Correcto! +2";
       addPoints(2);sfxCorrect();
     }
-    if(!currentQuizIsGold)updateProgressUI();
-    const wonGold=currentQuizIsGold;
+    if(!wonGold)updateProgressUI();
     setTimeout(()=>{
-      closeQuiz();activePipe=null;currentQuestion=null;currentQuizIsGold=false;
+      if(wasMegaAttempt)resumeJackpotTimerFromQuiz();
+      closeQuiz();activePipe=null;currentQuestion=null;currentQuizIsGold=false;currentQuizWasDuringJackpot=false;
       state="playing";restoreMusic();startMusic();
-      if(wonGold)startJackpot();
+      if(wonGold){
+        if(wasMegaAttempt)triggerMegaJackpot();
+        else startJackpot();
+      }
     },400);
   }else{
     buttons[index]?.classList.add("wrong");
@@ -1131,7 +1183,8 @@ function submitChoice(index){
     attemptsEl.textContent=lives>1?"Pierdes 1 corazón":"Último corazón";
     sfxWrong();
     setTimeout(()=>{
-      closeQuiz();activePipe=null;currentQuestion=null;currentQuizIsGold=false;
+      if(wasMegaAttempt)resumeJackpotTimerFromQuiz();
+      closeQuiz();activePipe=null;currentQuestion=null;currentQuizIsGold=false;currentQuizWasDuringJackpot=false;
       state="playing";restoreMusic();startMusic();loseHeart();
     },1500);
   }
@@ -1163,7 +1216,7 @@ function update(dt,now){
   bird.vy+=d.gravity*f;bird.y+=bird.vy*f;
   groundOffset=(groundOffset+speed*f)%48;cloudOffset=(cloudOffset+.12*f)%W;
 
-  // Full screen wrap only during the 10-second jackpot.
+  // Full screen wrap throughout the active jackpot, including MEGA extensions.
   if(jackpotActive){
     if(bird.y>H+bird.h){
       bird.y=-bird.h+2;lastJackpotWrapMs=now;
@@ -1184,8 +1237,11 @@ function update(dt,now){
 
     if(!p.passed&&p.x+pipeWidth<bird.x){
       p.passed=true;totalPassed++;
-      if(jackpotActive){
-        // Bonus mode: every pipe is an automatic +1 and never interrupts play.
+      if(jackpotActive&&p.gold){
+        // A gold pipe inside a jackpot pauses the timer and offers a MEGA JACKPOT challenge.
+        openQuiz(p);return;
+      }else if(jackpotActive){
+        // Non-gold pipes remain automatic +1 during bonus mode.
         addPoints(1);sfxPass();
       }else if(p.gold||p.isVerb){
         // Gold pipes always quiz. Every third non-gold pipe is a verb pipe.
@@ -1283,7 +1339,7 @@ function drawGoldSparkles(p,gap){
   });
 }
 function drawVerbLabel(p,gap){
-  if(jackpotActive||!p.question)return;
+  if((jackpotActive&&!p.gold)||!p.question)return;
   const word=p.question.verb.toUpperCase();
   const x=Math.round(p.x),labelW=pipeWidth+34,labelH=34;
   const labelX=x-17,labelY=Math.max(8,p.topH-38-labelH-7);
@@ -1337,6 +1393,11 @@ function drawCoins(){
 function drawJackpotCountdown(){
   if(!jackpotActive)return;
   const remaining=jackpotRemaining(performance.now());
+  if(megaJackpotActive){
+    ctx.save();ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.font='900 24px "Courier New",monospace';ctx.lineWidth=6;ctx.strokeStyle="#3a174f";
+    ctx.strokeText("¡MEGA JACKPOT!",W/2,86);ctx.fillStyle=rainbowColor(0);ctx.fillText("¡MEGA JACKPOT!",W/2,86);ctx.restore();
+  }
   if(remaining>3000||remaining<=0)return;
   const n=Math.max(1,Math.ceil(remaining/1000));
   const within=remaining%1000;
@@ -1450,11 +1511,26 @@ function drawTrail(x,y){
 }
 function drawBird(){
   const x=Math.round(bird.x),y=Math.round(bird.y),tilt=state==="playing"?Math.max(-.35,Math.min(.65,bird.vy/12)):0;
-  const now=performance.now(),powered=jackpotActive,grace=!powered&&(now<jackpotGraceUntil||now<lifeGraceUntil);
+  const now=performance.now(),powered=jackpotActive,mega=powered&&megaJackpotActive,grace=!powered&&(now<jackpotGraceUntil||now<lifeGraceUntil);
   const premium=["destellos_viaje","portal_temporal","crononauta_legendario","fenix_temporal"].includes(equipped.efecto);
-  const scale=powered?1.22:1;
+  const scale=mega?1.32:(powered?1.22:1);
 
   drawTrail(x,y);
+
+  // MEGA JACKPOT adds a strong rotating rainbow aura on top of any equipped cosmetic.
+  if(mega){
+    ctx.save();
+    const cx=x+bird.w/2,cy=y+bird.h/2;
+    ctx.lineWidth=5;ctx.globalAlpha=.82;ctx.strokeStyle=rainbowColor(0);
+    ctx.beginPath();ctx.ellipse(cx,cy,43,27,now/420,0,Math.PI*2);ctx.stroke();
+    ctx.globalAlpha=.6;ctx.strokeStyle=rainbowColor(120);
+    ctx.beginPath();ctx.ellipse(cx,cy,51,21,-now/350,0,Math.PI*2);ctx.stroke();
+    for(let i=0;i<10;i++){
+      const a=now/260+i*Math.PI/5;
+      pxRect(cx+Math.cos(a)*48,cy+Math.sin(a)*28,5,5,rainbowColor(i*36));
+    }
+    ctx.restore();
+  }
 
   // Effects that live outside the rotated bird silhouette.
   if(equipped.efecto==="portal_temporal"||equipped.efecto==="crononauta_legendario"||equipped.efecto==="fenix_temporal"){
@@ -1472,7 +1548,7 @@ function drawBird(){
 
   ctx.save();ctx.translate(x+bird.w/2,y+bird.h/2);ctx.rotate(tilt);ctx.scale(scale,scale);ctx.translate(-bird.w/2,-bird.h/2);
   if(powered||grace||premium){
-    ctx.shadowBlur=powered?22:premium?16:13;
+    ctx.shadowBlur=mega?34:(powered?22:premium?16:13);
     ctx.shadowColor=powered?rainbowColor(180):equipped.efecto==="fenix_temporal"?"#ff6936":equipped.efecto==="portal_temporal"?"#6ed3da":equipped.efecto==="crononauta_legendario"?"#ffbc5c":"#ffe4a0";
   }
 
